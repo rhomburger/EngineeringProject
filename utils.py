@@ -55,8 +55,8 @@ def get_example(path, batch_size):
     i=0
     while True:
 
-        x = np.load("x" + str(i) + ".npy")
-        y = np.load("y" + str(i) + ".npy").astype(np.float32)
+        x = np.load("nx" + str(i) + ".npy")
+        y = np.load("ny" + str(i) + ".npy").astype(np.float32)
 
         i=((i+1) % batch_size)
 
@@ -118,6 +118,7 @@ def make_examples(path, num_examples):
         im_dim[0, :, :, 0] = im[:, :, 2] - VGG_MEAN[0]
         im_dim[0, :, :, 1] = im[:, :, 1] - VGG_MEAN[1]
         im_dim[0, :, :, 2] = im[:, :, 0] - VGG_MEAN[2]
+        im_dim /= 255
 
         #im_dim = im_dim.astype(np.float32)
 
@@ -161,8 +162,10 @@ def make_examples(path, num_examples):
             vgg = vgg19.Vgg19()
             vgg.build(bgr)
 
-            convs = [vgg.conv5_4, vgg.conv4_4, vgg.conv3_4, vgg.conv2_2,
-                             vgg.conv1_2]
+            # convs = [vgg.conv5_4, vgg.conv4_4, vgg.conv3_4, vgg.conv2_2,
+            #                  vgg.conv1_2]
+            convs = [vgg.conv5_1, vgg.conv4_1, vgg.conv3_1, vgg.conv2_1,
+                             vgg.conv1_1]
             pools = [vgg.pool4, vgg.pool3, vgg.pool2, vgg.pool1]
 
             features = np.zeros(3, dtype=object)
@@ -187,8 +190,8 @@ def make_examples(path, num_examples):
 
             y = im_dim#sess.run(bgr)
 
-            x_name = "cx" + str(i)
-            y_name = "cy" + str(i)
+            x_name = "norm_x" + str(i)
+            y_name = "norm_y" + str(i)
             np.save(x_name, x)
             np.save(y_name, y)
 

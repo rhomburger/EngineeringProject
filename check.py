@@ -6,9 +6,24 @@ import matplotlib.image
 import scipy.misc
 
 
+
+# for i in range(10):
+#     name = "x" + str(i) + ".npy"
+#     ar = np.load(name)
+#     ar[0][4] = np.zeros(ar[0][4].shape)
+#     np.save("z_" + name, ar)
+#
+# exit()
+
+
+# u.make_examples("/cs/labs/raananf/rhomburger/code/Restoration"
+#                 "/training_images", 10)
+# exit()
+
 # #creating the features array
 # u.make_examples("/cs/labs/raananf/rhomburger/code/Restoration"
 #                 "/training_images", 10)
+
 #
 #
 #
@@ -17,12 +32,13 @@ import scipy.misc
 # res = r.Restoration(
 #     im_path="/cs/labs/raananf/rhomburger/code/Restoration",
 #     model_path ="/cs/labs/raananf/rhomburger/code/Restoration"
-#                 "/model_cost_similar_gradients"
-#                 "/model_n1" ,
-#     num_epochs=5000,
+#                 "/model_layers_check"
+#                 "/model_new_convs" ,
+#     num_epochs=1000,
 #     batch_size=5, reg_factor=0.1)
 #
 # res.train_net()
+# exit()
 # #
 
 
@@ -39,23 +55,24 @@ import scipy.misc
 VGG_MEAN = [103.939, 116.779, 123.68]
 res = r.Restoration(
     im_path="/cs/labs/raananf/rhomburger/code/Restoration",
-    model_path ="/cs/labs/raananf/rhomburger/code/Restoration/model_cost_similar_gradients"
-                "/model_n6" ,
+    model_path ="/cs/labs/raananf/rhomburger/code/Restoration/model_layers_check"
+                "/model_new_convs" ,
     num_epochs=1,
     batch_size=10)
 
 
-x = np.load("tx2.npy")
+x = np.load("nx0.npy") #should be tx2
 
-original_im = np.load("ty2.npy")[0,:,:,:]
-im2 = np.zeros(original_im.shape)
-im2[:,:,0] = original_im[:,:,2] + VGG_MEAN[2]
-im2[:,:,1] = original_im[:,:,1] + VGG_MEAN[1]
-im2[:,:,2] = original_im[:,:,0] + VGG_MEAN[0]
-im2 = im2/255
-print(im2[0:4,0:4,0])
+original_im_bgr = np.load("ny0.npy")[0,:,:,:]
+original_im_rgb = np.zeros(original_im_bgr.shape)
+original_im_rgb[:,:,0] = original_im_bgr[:,:,2] + VGG_MEAN[2]
+original_im_rgb[:,:,1] = original_im_bgr[:,:,1] + VGG_MEAN[1]
+original_im_rgb[:,:,2] = original_im_bgr[:,:,0] + VGG_MEAN[0]
+original_im_rgb = original_im_rgb/255
 
 y = res.restore(x)
+np.save("y_restored.npy", y)
+
 
 
 im = y[0,:,:,:]
@@ -64,21 +81,23 @@ im3[:,:,0] = im[:,:,2] + VGG_MEAN[2]
 im3[:,:,1] = im[:,:,1] + VGG_MEAN[1]
 im3[:,:,2] = im[:,:,0] + VGG_MEAN[0]
 im3 = im3/255
-im3 = np.clip(im3, 0, 1)
+print(np.max(im3))
+print(np.min(im3))
+#im3 = np.clip(im3, 0, 1)
 #scipy.misc.toimage(im).save('testtt.jpg')
 im = im/255
 im = np.clip(im, 0, 1)
-matplotlib.image.imsave('testtt.png', im)
+#matplotlib.image.imsave('testtt.png', im)
 
 
-print(np.mean(np.square(im2-im)))
+#print(np.mean(np.square(im2-im)))
 
 fig = plt.figure()
 a=fig.add_subplot(1,2,1)
-plt.imshow(im2)
+plt.imshow(original_im_rgb)
 a.set_title('Original image')
 a=fig.add_subplot(1,2,2)
-plt.imshow(im)
+plt.imshow(im3)
 a.set_title('Image after net')
 plt.show()
 

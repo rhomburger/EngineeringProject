@@ -58,10 +58,11 @@ class Restoration:
 		self.gradients = []
 
 
-	def deconv(self, in_block, weights):
+	def deconv(self, in_block, weights, name):
 
 		return tf.nn.conv2d(input=in_block, filter=weights,
-								strides=[1,1,1,1], padding="SAME")
+								strides=[1,1,1,1], padding="SAME",
+							name=name)
 
 
 	def unpool2d(self, p, ind, org_dims, ksize=[1, 2, 2, 1]):
@@ -124,158 +125,25 @@ class Restoration:
 		return (name[6], name[8])
 		
 		
-	def create_layer(self, prev_layer, name, input_channels,
-					 output_channels, relu_active=True):
-
-		# self.inputs[name] = tf.placeholder("float32", shape=[1, None,
-		# 													 None, num_filters])
-        #
-		# if prev_layer == None:
-		# 	input = tf.placeholder("float32", shape=[1, None,
-		# 													 None, num_filters])
-		# 	self.convs.append(input)
-		# 	total_filters = num_filters
-		# 	# input = self.inputs[name]
-		# elif self.full_net or self.name_to_layer(name)[1]=='1':
-		# 	input = tf.placeholder("float32", shape=[1, None,
-		# 													 None, num_filters])
-		# 	self.convs.append(input)
-		# 	input = tf.concat([prev_layer, input], 3)
-		# 	total_filters = 2*num_filters
-		# 	num_prev_filters = 2 * num_prev_filters
-		# 	# input = tf.concat(2, [prev_layer, self.inputs[name]])
-		# else:
-		# 	input = prev_layer
-		# 	total_filters = num_filters
-
-		# self.weights[name] = tf.Variable(tf.random_normal(
-		# 	[1, 3, 512,
-		# 	 512]))
-
-        #
-		# if(self.name_to_layer(name)[1]=='2' and self.name_to_layer(name)[
-		# 	0]!='1'):
-		# 	num_prev_filters = 2*num_prev_filters
 
 
-		self.weights[name] = tf.Variable(tf.random_normal([
-		self.filter_size,self.filter_size,input_channels,output_channels]))
-		#print(self.weights[name])
-		self.biases[name] = tf.Variable(tf.random_normal([output_channels]))
+	# def unpooling(self, res, stam=-2):
+	#
+	# 	dims = tf.placeholder("int32", shape=[2])
+	# 	self.pool_dims.append(dims)
+	# 	ind = tf.placeholder("int64", shape=[None, None, None, None])
+	# 	self.pool_ind.append(ind)
+    #
+	# 	p = self.unpool2d(res, ind, dims)
+	# 	#print("after pool: ", p)
+	# 	return p
 
-		if relu_active:
-			output = tf.nn.relu(self.deconv(prev_layer, self.weights[name]) +
-									   self.biases[name])
-		else:
-			output = self.deconv(prev_layer, self.weights[name]) + \
-					 self.biases[name]
-
-		# outputs = {'1':None, '2':None, '3':None, '4':None}
-        #
-		# if self.name_to_layer(name)[1] == '1':
-		# 	outputs['1'] = (tf.nn.relu(self.deconv(prev_layer, self.weights[name]) +
-		# 							   self.biases[name]))
-		# elif self.name_to_layer(name)[1] == '2':
-		# 	outputs['2'] = (tf.nn.relu(self.deconv(prev_layer, self.weights[name]) +
-		# 							   self.biases[name]))
-		# elif self.name_to_layer(name)[1] == '3':
-		# 	outputs['3'] = (tf.nn.relu(self.deconv(prev_layer, self.weights[name]) +
-		# 							   self.biases[name]))
-		# elif self.name_to_layer(name)[1] == '4':
-		# 	outputs['4'] = (tf.nn.relu(self.deconv(prev_layer, self.weights[name]) +
-		# 							   self.biases[name]))
-		# else:
-		# 	outputs['1'] = (tf.nn.relu(self.deconv(prev_layer, self.weights[name]) +
-		# 							   self.biases[name]))
-        #
-		# for k in outputs:
-		# 	if outputs[k]!=None:
-		# 		output = outputs[k]
-
-		# output = (tf.nn.relu(self.deconv(prev_layer, self.weights[name]) +
-		# 		self.biases[name]))
-
-
-
-		if (name != "restor0_0"):
-			self.means.append(tf.reduce_mean(output))
-			#self.means = np.append(self.means, tf.reduce_mean(output))
-		return output
-		
-
-	def build_block(self, prev_block, block_index, num_layers, num_filters,
-					prev_filters, next_filters):
-		"""
-
-		:param prev_block: the output of the unpooling operation of the
-							previous block
-		:param block_index:
-		:param num_layers: number of convolution layers in the block
-		:param num_filters:
-		:param prev_filters:
-		:return:
-		"""
-
-
-		block_input = tf.placeholder("float32",
-									 shape=[1, None, None, num_filters])
-
-
-
-		self.convs.append(block_input)
-		input_channels = num_filters
-
-		if block_index > 1:
-			block_input = tf.concat([prev_block, block_input], 3)
-			input_channels = 2*num_filters
-
-		output_channels = num_filters
-		layer = block_input
-		for c in range(num_layers):
-			if block_index!=5 and c==num_layers - 1:
-				output_channels = next_filters
-			layer = self.create_layer(layer,
-									  self.layer_to_name(block_index, c+1),
-									  input_channels, output_channels)
-			input_channels = num_filters
-
-		#print("after block: ", layer)
-		return layer
-
-	def unpooling(self, res, stam=-2):
-		
+	def unpooling(self, inp, stam=-1):
 		dims = tf.placeholder("int32", shape=[2])
 		self.pool_dims.append(dims)
-		ind = tf.placeholder("int64", shape=[None, None, None, None])
-		self.pool_ind.append(ind)
-
-		p = self.unpool2d(res, ind, dims)
-		#print("after pool: ", p)
+		p = tf.image.resize_nearest_neighbor(inp, size=dims)
 		return p
 
-
-	def build_net(self):
-		"""
-		Builds the Restoration network
-        :return: the output layer of the net
-        """
-		self.label = tf.placeholder("float32", shape=[1, None, None, 3])
-
-		block_1 = self.build_block(None, 1, 4, 512, 512, 512) #from 4 to 1
-		block_1 = self.unpooling(block_1)
-		block_2 = self.build_block(block_1, 2, 4, 512, 512, 256) #from 4 to 1
-		block_2 = self.unpooling(block_2)
-		block_3 = self.build_block(block_2, 3, 4, 256, 512, 128) #from 4 to 1
-		block_3 = self.unpooling(block_3)
-		block_4 = self.build_block(block_3, 4, 2, 128, 256, 64) #from 2 to 1
-		block_4 = self.unpooling(block_4)
-		block_5 = self.build_block(block_4, 5, 2, 64, 128, None) #from 2 to 1
-
-		self.out = self.create_layer(block_5, "restor0_0", 64, 3, False) # a layer
-		# that
-		# returns an image
-
-		return self.out
 
 
 
@@ -283,72 +151,105 @@ class Restoration:
 	def build_net2(self):
 		self.label = tf.placeholder("float32", shape=[1, None, None, 3])
 		self.convs.append(tf.placeholder("float32", shape=[1, None, None,
-														   512]))
+														   512],
+										 name="input1"))
 		self.convs.append(tf.placeholder("float32", shape=[1, None, None,
-														   512]))
+														   512],
+										 name="input2"))
 		self.convs.append(tf.placeholder("float32", shape=[1, None, None,
-														   256]))
+														   256],
+										 name="input3"))
 		self.convs.append(tf.placeholder("float32", shape=[1, None, None,
-														   128]))
-		self.convs.append(tf.placeholder("float32", shape=[1, None, None, 64]))
+														   128],
+										 name="input4"))
+		self.convs.append(tf.placeholder("float32", shape=[1, None, None,
+														   64], name="input5"))
 
 		self.weights[4] = tf.Variable(self.random_weights*tf.random_normal([
-							self.filter_size,self.filter_size,512,512]))
+							self.filter_size,self.filter_size,512,512]),
+									  name="weights1")
 		self.biases[4] = tf.Variable(self.random_biases*tf.random_normal([
-			512]))
-		t = tf.nn.relu(self.deconv(self.convs[0], self.weights[4]) +
-									   self.biases[4])
-		self.means.append(tf.reduce_mean(t))
+			512]), name="biases1")
+		t = tf.nn.relu(self.deconv(self.convs[0], self.weights[4], "deconv1") +
+									   self.biases[4], name="relu1")
+		#self.means.append(tf.reduce_mean(t))
 		t = self.unpooling(t, 4)
 
 
 		self.weights[3] = tf.Variable(self.random_weights*tf.random_normal([
-							self.filter_size,self.filter_size,2*512,256]))
-		self.biases[3] = tf.Variable(self.random_biases*tf.random_normal([256]))
+							self.filter_size,self.filter_size,2*512,256]),
+									  name="weights2")
+		self.biases[3] = tf.Variable(self.random_biases*tf.random_normal([
+			256]), name="biases2")
 
 		t = tf.nn.relu(self.deconv(tf.concat([t, self.convs[1]], 3),
-								   self.weights[3]) + self.biases[3])
-		self.means.append(tf.reduce_mean(t))
+								   self.weights[3], "deconv2") +
+					   self.biases[3], name="relu2")
+		#self.means.append(tf.reduce_mean(t))
 		t = self.unpooling(t, 3)
 
 
 		self.weights[2] = tf.Variable(self.random_weights*tf.random_normal([
-							self.filter_size,self.filter_size,2*256,128]))
-		self.biases[2] = tf.Variable(self.random_biases*tf.random_normal([128]))
+							self.filter_size,self.filter_size,2*256,128]),
+									  name="weights3")
+		self.biases[2] = tf.Variable(self.random_biases*tf.random_normal([
+			128]), name="biases3")
 		t = tf.nn.relu(self.deconv(tf.concat([t, self.convs[2]], 3),
-								   self.weights[2]) + self.biases[2])
-		self.means.append(tf.reduce_mean(t))
+								   self.weights[2], "deconv3") +
+					   self.biases[2], name="relu3")
+		#self.means.append(tf.reduce_mean(t))
 		t = self.unpooling(t, 2)
 
 
 		self.weights[1] = tf.Variable(self.random_weights*tf.random_normal([
-							self.filter_size,self.filter_size,2*128,64]))
-		self.biases[1] = tf.Variable(self.random_biases*tf.random_normal([64]))
+							self.filter_size,self.filter_size,2*128,64]), name="weights4")
+		self.biases[1] = tf.Variable(self.random_biases*tf.random_normal([
+			64]), name="biases4")
 		t = tf.nn.relu(self.deconv(tf.concat([t, self.convs[3]], 3),
-								   self.weights[1]) + self.biases[1])
-		self.means.append(tf.reduce_mean(t))
+								   self.weights[1], "deconv4") +
+					   self.biases[1], name="relu4")
+		#self.means.append(tf.reduce_mean(t))
 		t = self.unpooling(t, 1)
 
 
 		self.weights[0] = tf.Variable(self.random_weights*tf.random_normal([
-							self.filter_size,self.filter_size,2*64,64]))
-		self.biases[0] = tf.Variable(self.random_biases*tf.random_normal([64]))
+							self.filter_size,self.filter_size,2*64,64]),
+									  name="weights5")
+		self.biases[0] = tf.Variable(self.random_biases*tf.random_normal([
+			64]), name="biases5")
 		t = tf.nn.relu(self.deconv(tf.concat([t, self.convs[4]], 3),
-								   self.weights[0]) + self.biases[0])
-		self.means.append(tf.reduce_mean(t))
+								   self.weights[0], "deconv5") +
+					   self.biases[0], name="relu5")
+		#self.means.append(tf.reduce_mean(t))
 		#no unpooling
 
 
 		self.weights[-1] = tf.Variable(self.random_weights*tf.random_normal([
-			self.filter_size, self.filter_size, 64, 3]))
-		self.biases[-1] = tf.Variable(self.random_biases*tf.random_normal([3]))
-		self.out = self.deconv(t, self.weights[-1]) + self.biases[-1]
+			self.filter_size, self.filter_size, 64, 3]), name="weights6")
+		self.biases[-1] = tf.Variable(self.random_biases*tf.random_normal([
+			3]), name="biases6")
+		self.out = self.deconv(t, self.weights[-1], "deconv6-out") + \
+				   self.biases[-1]
 
 		for i in range(5):
-			self.gradients.append(tf.reduce_sum(tf.square(tf.gradients(
-				tf.reduce_sum(tf.square(self.out)),self.convs[i]))))
+			self.gradients.append(tf.sqrt(tf.reduce_mean(tf.square(
+				tf.gradients(self.out, self.convs[i])))))
+
+
+			#prev chosen:
+			# self.gradients.append(tf.reduce_mean(tf.gradients(tf.sqrt(
+			# 	tf.reduce_mean(tf.square(
+			# 	self.out))), self.convs[i])))
+
+			#OR
+
+			# self.gradients.append(tf.sqrt(tf.reduce_mean(tf.square(
+			# 	tf.gradients(tf.sqrt(tf.reduce_mean(tf.square(
+			# 	self.out))),self.convs[i])))))
+
 
 		return self.out
+
 
 
 	def train_net(self):
@@ -359,63 +260,16 @@ class Restoration:
         :return:
         """
 
-		net = self.build_net2()
+		net = self.build_net2()#self.build_net_noRelU()#
 		print("### net created successfully ###")
-		# cost = tf.nn.l2_loss(self.label - self.out) + \
-		# 	self.alpha * tf.nn.l2_loss(tf.reduce_mean(tf.stack(
-		# 		self.weights.values())) - tf.reduce_mean(
-		# 		tf.reduce_mean(tf.stack(self.weights.values()))))
-
-
-
-
-		# #this is what i used for basic training
-		# cost = tf.reduce_mean(tf.square(self.label - self.out)) + \
-		#  	self.alpha * tf.reduce_mean(tf.square(tf.stack(self.means) - tf.reduce_mean(
-		#  		tf.stack(self.means))))
 
 		# advanced cost
 		cost_average_pixels = tf.reduce_mean(tf.square(self.label - self.out))
 
+		cost_similar_filters = tf.reduce_mean(tf.square(tf.stack(self.gradients)
+								- tf.reduce_mean(tf.stack(self.gradients))))
 
-		#cost for similar filters values
-		# for v in self.weights.values():
-		# 	self.means_weights.append(tf.reduce_mean(v))
-		# cost_similar_filters = tf.reduce_mean(tf.square(tf.stack(self.means_weights) -
-		# 						tf.reduce_mean(tf.stack(self.means_weights))))
-
-		# #cost for similar gradients
-
-		cost_similar_filters = tf.reduce_sum(tf.abs(tf.stack(self.gradients)-tf.reduce_mean(
-			tf.stack(self.gradients))))
-
-		# for i in range(5):
-		# 	self.gradients.append(tf.reduce_mean(tf.square(tf.gradients(
-		# 		tf.reduce_sum(tf.square(self.out)), fd[self.convs[i]]))))
-		# grad_mean = tf.reduce_mean(tf.square(tf.stack(self.gradients)))
-		# cost_similar_filters = tf.reduce_mean(tf.square(tf.stack(
-		# 	self.gradients) - grad_mean))
-        #
-        #
-        #
-        #
-		# # cost similar responses
-		# # cost_similar_filters = tf.reduce_mean(tf.square(tf.stack(self.means) - tf.reduce_mean(
-		# #   		tf.stack(self.means))))
-        #
-		# # for i in range(5):
-		# # 	for j in range(i+1, 4):
-		# # 		self.fourier.append(tf.tensordot(tf.cast(tf.square(tf.fft(
-		# # 			tf.stack(
-		# # 			tf.cast(self.weights[i], dtype=tf.complex64)))),
-		# # 			dtype=tf.float32),
-		# # 								   tf.cast(tf.square(tf.fft(tf.stack(
-		# # 			tf.cast(self.weights[j], dtype=tf.complex64)))), dtype=tf.float32),
-		# # 			axes=1))
-        #
-		# #cost_orthogonal_fourier = tf.reduce_sum(tf.stack(self.fourier))
-        #
-		cost = cost_average_pixels + self.alpha*cost_similar_filters
+		cost = cost_average_pixels #+ self.alpha*cost_similar_filters
 
 
 		optimizer = tf.train.AdamOptimizer(
@@ -424,17 +278,15 @@ class Restoration:
 
 
 		loss_graph = []
-		loss_average_pixels = []
-		loss_similar_filters = []
-
+		loss_a = []
+		loss_b = []
 
 		with tf.Session() as sess:
 			print("### started initialize variables ###")
 			sess.run(tf.global_variables_initializer())
 			print("### finished initialize variables ###")
 
-			#gen = utils.get_im(self.path, self.full_net)
-			print(self.num_images)
+
 			gen = utils.get_example(self.path, self.num_images)
 
 			# n = [n.name for n in tf.get_default_graph().as_graph_def().node]
@@ -454,40 +306,22 @@ class Restoration:
 					(x, y) = next(gen)
 					fd = {}
 
-
-					#todo: in case of full net -> the relation between pooling
-					# todo and conv isnt correct
 					for i in range(len(x[0])):
-						fd[self.convs[i]] = x[0][i]#sess.run(x[0][i])
-						# print("fd[self.convs[i]]: ", i, fd[self.convs[i]].shape)
+						fd[self.convs[i]] = x[0][i]
 					for i in range(len(x[1])):
 						fd[self.pool_dims[i]] = x[1][i]#[fd[self.convs[
 							# i+1]].shape[1],
 												# fd[self.convs[i + 1]].shape[2]]
 						# print("fd[self.pool_dims[i]]: ", fd[self.pool_dims[i]])
-						fd[self.pool_ind[i]] = x[2][i]#sess.run(x[2][i])
+						#fd[self.pool_ind[i]] = x[2][i]#sess.run(x[2][i])
 						#print("fd[self.pool_ind[i]].shape: ", i, fd[self.pool_ind[
 							# i]].shape)
 					fd[self.label] = y
 
-					self.means = []#np.array([], dtype=np.float32)
 
-					# # cost for similar gradients
-					# for i in range(4):
-					# 	self.gradients.append(
-					# 		tf.reduce_mean(tf.square(tf.gradients(
-					# 			tf.reduce_sum(tf.square(self.out)),
-					# 			self.convs[i]))))
-					# grad_mean = tf.reduce_mean(
-					# 	tf.square(tf.stack(self.gradients)))
-					# cost_similar_filters = tf.reduce_mean(tf.square(tf.stack(
-					# 	self.gradients) - grad_mean))
-                    #
-					# cost = cost_average_pixels + self.alpha * cost_similar_filters
-
-					_, c, c_a, c_b = sess.run([optimizer, cost,
+					_, c, c_a, c_b, ggg = sess.run([optimizer, cost,
 										  cost_average_pixels,
-									 cost_similar_filters],
+									 cost_similar_filters, self.gradients],
 									feed_dict=fd)
 					# _, c = sess.run([optimizer, cost],
 					# 				feed_dict=fd)
@@ -506,7 +340,11 @@ class Restoration:
 						iter_index + 1) + " out of " +
 						  str(self.num_epochs) + " with loss: " + str(c))
 					print("pixelwise: %d", c_a)
+					loss_a.append(c_a)
 					print("gradients: %d", c_b)
+					loss_b.append(c_b)
+					print(ggg)
+
 				# 	p = sess.run(self.out, feed_dict=fd)
 				# 	im = p[0,:,:,:]
 				# 	np.save("npiter_" +str(iter_index+1) + ".npy", im)
@@ -527,13 +365,14 @@ class Restoration:
                 #
 				# print("names: ", len(n))
 
-
+			writer = tf.summary.FileWriter("/cs/labs/raananf/rhomburger/code/Restoration/tmp/test", sess.graph)
 
 
 
 			print("### finished training ###")
 
-
+			np.save("loss_a.npy", np.array(loss_a))
+			np.save("loss_b.npy", np.array(loss_b))
 
 			save_path = saver.save(sess, self.model_location)
 			print("Model saved in file: %s" % save_path)
@@ -577,7 +416,7 @@ class Restoration:
 				# i+1]].shape[1],
 				# fd[self.convs[i + 1]].shape[2]]
 				# print("fd[self.pool_dims[i]]: ", fd[self.pool_dims[i]])
-				fd[self.pool_ind[i]] = features[2][i]  # sess.run(x[2][i])
+				#fd[self.pool_ind[i]] = features[2][i]  # sess.run(x[2][i])
 
 
 			blue, green, red = tf.split(axis=3, num_or_size_splits=3,
@@ -589,7 +428,8 @@ class Restoration:
 
 			])
 
-			prediction = sess.run(rgb, feed_dict=fd)
+			#prediction = sess.run(rgb, feed_dict=fd)
+			prediction = sess.run(self.out, feed_dict=fd)
 
 		return prediction
 
