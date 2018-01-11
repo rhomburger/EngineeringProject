@@ -28,14 +28,14 @@ import scipy.misc
 #
 #
 #for training
-#
+
 # res = r.Restoration(
 #     im_path="/cs/labs/raananf/rhomburger/code/Restoration",
 #     model_path ="/cs/labs/raananf/rhomburger/code/Restoration"
 #                 "/model_layers_check"
-#                 "/model_new_convs" ,
-#     num_epochs=1000,
-#     batch_size=5, reg_factor=0.1)
+#                 "/model_new_net_cost" ,
+#     num_epochs=200,
+#     batch_size=10, reg_factor=500000)
 #
 # res.train_net()
 # exit()
@@ -56,37 +56,42 @@ VGG_MEAN = [103.939, 116.779, 123.68]
 res = r.Restoration(
     im_path="/cs/labs/raananf/rhomburger/code/Restoration",
     model_path ="/cs/labs/raananf/rhomburger/code/Restoration/model_layers_check"
-                "/model_new_convs" ,
+                "/model_new_net_cost" ,
     num_epochs=1,
     batch_size=10)
 
 
-x = np.load("nx0.npy") #should be tx2
+x = np.load("tnx0.npy") #should be tx2
 
-original_im_bgr = np.load("ny0.npy")[0,:,:,:]
+original_im_bgr = np.load("tny0.npy")[0,:,:,:]
 original_im_rgb = np.zeros(original_im_bgr.shape)
 original_im_rgb[:,:,0] = original_im_bgr[:,:,2] + VGG_MEAN[2]
 original_im_rgb[:,:,1] = original_im_bgr[:,:,1] + VGG_MEAN[1]
 original_im_rgb[:,:,2] = original_im_bgr[:,:,0] + VGG_MEAN[0]
 original_im_rgb = original_im_rgb/255
-
+print(np.max(original_im_rgb))
+print(np.min(original_im_rgb))
+print(np.max(original_im_bgr))
+print(np.min(original_im_bgr))
 y = res.restore(x)
 np.save("y_restored.npy", y)
 
 
 
-im = y[0,:,:,:]
-im3 = np.zeros(im.shape)
-im3[:,:,0] = im[:,:,2] + VGG_MEAN[2]
-im3[:,:,1] = im[:,:,1] + VGG_MEAN[1]
-im3[:,:,2] = im[:,:,0] + VGG_MEAN[0]
-im3 = im3/255
-print(np.max(im3))
-print(np.min(im3))
+im_restored_bgr = y[0,:,:,:]
+im_restored_rgb = np.zeros(im_restored_bgr.shape)
+im_restored_rgb[:,:,0] = im_restored_bgr[:,:,2] + VGG_MEAN[2]
+im_restored_rgb[:,:,1] = im_restored_bgr[:,:,1] + VGG_MEAN[1]
+im_restored_rgb[:,:,2] = im_restored_bgr[:,:,0] + VGG_MEAN[0]
+im_restored_rgb = im_restored_rgb/255
+print(np.max(im_restored_rgb))
+print(np.min(im_restored_rgb))
+print(np.max(im_restored_bgr))
+print(np.min(im_restored_bgr))
 #im3 = np.clip(im3, 0, 1)
 #scipy.misc.toimage(im).save('testtt.jpg')
-im = im/255
-im = np.clip(im, 0, 1)
+im_restored_bgr = im_restored_bgr/255
+im_restored_bgr = np.clip(im_restored_bgr, 0, 1)
 #matplotlib.image.imsave('testtt.png', im)
 
 
@@ -97,7 +102,7 @@ a=fig.add_subplot(1,2,1)
 plt.imshow(original_im_rgb)
 a.set_title('Original image')
 a=fig.add_subplot(1,2,2)
-plt.imshow(im3)
+plt.imshow(im_restored_rgb)
 a.set_title('Image after net')
 plt.show()
 
