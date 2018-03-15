@@ -23,14 +23,9 @@ class Restoration:
 		self.model_location = model_path
 		self.filter_size = f_size # size of deconvolution filter
 
-		# self.cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(
-         #    pred, y))
-        #
-		# self.optimizer = tf.train.AdamOptimizer().minimize(self.cost)
 
-
-		self.weights = dict() # dictionary of weights for each deconvolution layer
-		self.biases = dict() # dictionary of biases for each deconvolution layer
+		self.weights = [] # dictionary of weights for each deconvolution layer
+		self.biases = [] # dictionary of biases for each deconvolution layer
 
 		self.convs = []
 		self.inputs = dict() # tensorflow's placeholders for each layer (as each layer also gets an input)
@@ -138,11 +133,40 @@ class Restoration:
 	# 	#print("after pool: ", p)
 	# 	return p
 
+
+	def unpooling_zero_neighbours(self, updates, dim):
+		updates_shape = tf.shape(updates)
+		shape = tf.stack([1,dim[0],dim[1], updates_shape[3]]) #tensor shape
+		# after unpooling
+
+		N = updates_shape[1]
+		print(type(N))
+		#axis_2 = np.array([2*np.arange(N)]*N)
+		slice = tf.transpose(tf.stack([tf.zeros([N], dtype=tf.int32), tf.zeros(
+			[N], dtype=tf.int32), 2*tf.range(0,N,1)]))
+
+		axis_2 = tf.reshape(tf.tile(slice,[N,1]),[N,N,3])
+		#change to 3d!!
+
+		putin = tf.transpose(2*tf.multiply(tf.ones([N,N], dtype=tf.int32),
+												   tf.range(0,N,1)))
+		zeros_tensor = tf.zeros([N,N], dtype=tf.int32)
+		axis_1 = tf.stack([zeros_tensor, putin, zeros_tensor], 2)
+
+
+		indices = tf.expand_dims(tf.add(axis_1,axis_2),0)
+
+		scatter = tf.scatter_nd(indices, updates, shape)
+		return scatter
+
 	def unpooling(self, inp, stam=-1):
 		dims = tf.placeholder("int32", shape=[2])
 		self.pool_dims.append(dims)
-		p = tf.image.resize_nearest_neighbor(inp, size=dims)
+		#p = tf.image.resize_nearest_neighbor(inp, size=dims)
+		p = self.unpooling_zero_neighbours(inp, dims)
 		return p
+
+
 
 
 
@@ -165,71 +189,68 @@ class Restoration:
 		self.convs.append(tf.placeholder("float32", shape=[1, None, None,
 														   64], name="input5"))
 
-		self.weights[4] = tf.Variable(self.random_weights*tf.random_normal([
+		self.weights.append(tf.Variable(self.random_weights*tf.random_normal([
 							self.filter_size,self.filter_size,512,512]),
-									  name="weights1")
-		self.biases[4] = tf.Variable(self.random_biases*tf.random_normal([
-			512]), name="biases1")
-		t = tf.nn.relu(self.deconv(self.convs[0], self.weights[4], "deconv1") +
-									   self.biases[4], name="relu1")
+									  name="weights1"))
+		self.biases.append(tf.Variable(self.random_biases*tf.random_normal([
+			512]), name="biases1"))
+		t = tf.nn.relu(self.deconv(self.convs[0], self.weights[0], "deconv1") +
+									   self.biases[0], name="relu1")
 		#self.means.append(tf.reduce_mean(t))
 		t = self.unpooling(t, 4)
 
-
-		self.weights[3] = tf.Variable(self.random_weights*tf.random_normal([
+		self.weights.append(tf.Variable(self.random_weights*tf.random_normal([
 							self.filter_size,self.filter_size,2*512,256]),
-									  name="weights2")
-		self.biases[3] = tf.Variable(self.random_biases*tf.random_normal([
-			256]), name="biases2")
+									  name="weights2"))
+		self.biases.append(tf.Variable(self.random_biases*tf.random_normal([
+			256]), name="biases2"))
 
 		t = tf.nn.relu(self.deconv(tf.concat([t, self.convs[1]], 3),
-								   self.weights[3], "deconv2") +
-					   self.biases[3], name="relu2")
+								   self.weights[1], "deconv2") +
+					   self.biases[1], name="relu2")
 		#self.means.append(tf.reduce_mean(t))
 		t = self.unpooling(t, 3)
 
-
-		self.weights[2] = tf.Variable(self.random_weights*tf.random_normal([
+		self.weights.append(tf.Variable(self.random_weights*tf.random_normal([
 							self.filter_size,self.filter_size,2*256,128]),
-									  name="weights3")
-		self.biases[2] = tf.Variable(self.random_biases*tf.random_normal([
-			128]), name="biases3")
+									  name="weights3"))
+		self.biases.append(tf.Variable(self.random_biases*tf.random_normal([
+			128]), name="biases3"))
 		t = tf.nn.relu(self.deconv(tf.concat([t, self.convs[2]], 3),
 								   self.weights[2], "deconv3") +
 					   self.biases[2], name="relu3")
 		#self.means.append(tf.reduce_mean(t))
 		t = self.unpooling(t, 2)
 
-
-		self.weights[1] = tf.Variable(self.random_weights*tf.random_normal([
-							self.filter_size,self.filter_size,2*128,64]), name="weights4")
-		self.biases[1] = tf.Variable(self.random_biases*tf.random_normal([
-			64]), name="biases4")
+		self.weights.append(tf.Variable(self.random_weights*tf.random_normal([
+							self.filter_size,self.filter_size,2*128,64]),
+										name="weights4"))
+		self.biases.append(tf.Variable(self.random_biases*tf.random_normal([
+			64]), name="biases4"))
 		t = tf.nn.relu(self.deconv(tf.concat([t, self.convs[3]], 3),
-								   self.weights[1], "deconv4") +
-					   self.biases[1], name="relu4")
+								   self.weights[3], "deconv4") +
+					   self.biases[3], name="relu4")
 		#self.means.append(tf.reduce_mean(t))
 		t = self.unpooling(t, 1)
 
-
-		self.weights[0] = tf.Variable(self.random_weights*tf.random_normal([
+		self.weights.append(tf.Variable(self.random_weights*tf.random_normal([
 							self.filter_size,self.filter_size,2*64,64]),
-									  name="weights5")
-		self.biases[0] = tf.Variable(self.random_biases*tf.random_normal([
-			64]), name="biases5")
+									  name="weights5"))
+		self.biases.append(tf.Variable(self.random_biases*tf.random_normal([
+			64]), name="biases5"))
 		t = tf.nn.relu(self.deconv(tf.concat([t, self.convs[4]], 3),
-								   self.weights[0], "deconv5") +
-					   self.biases[0], name="relu5")
+								   self.weights[4], "deconv5") +
+					   self.biases[4], name="relu5")
 		#self.means.append(tf.reduce_mean(t))
 		#no unpooling
 
 
-		self.weights[-1] = tf.Variable(self.random_weights*tf.random_normal([
-			self.filter_size, self.filter_size, 64, 3]), name="weights6")
-		self.biases[-1] = tf.Variable(self.random_biases*tf.random_normal([
-			3]), name="biases6")
-		self.out = self.deconv(t, self.weights[-1], "deconv6-out") + \
-				   self.biases[-1]
+		self.weights.append(tf.Variable(self.random_weights*tf.random_normal([
+			self.filter_size, self.filter_size, 64, 3]), name="weights6"))
+		self.biases.append(tf.Variable(self.random_biases*tf.random_normal([
+			3]), name="biases6"))
+		self.out = self.deconv(t, self.weights[5], "deconv6-out") + \
+				   self.biases[5]
 
 		for i in range(5):
 			self.gradients.append(tf.sqrt(tf.reduce_mean(tf.square(
@@ -268,8 +289,10 @@ class Restoration:
 
 		cost_similar_filters = tf.reduce_mean(tf.square(tf.stack(self.gradients)
 								- tf.reduce_mean(tf.stack(self.gradients))))
+		# _, cost_similar_filters = tf.nn.moments(tf.stack(self.gradients),
+		# 										axes=[0])
 
-		cost = cost_average_pixels #+ self.alpha*cost_similar_filters
+		cost = cost_average_pixels + self.alpha*cost_similar_filters
 
 
 		optimizer = tf.train.AdamOptimizer(
@@ -333,6 +356,8 @@ class Restoration:
 					#  self.label: y}
 
 					loss_graph.append(c)
+					#loss_a.append(c_a)
+					#loss_b.append(self.alpha*c_b)
 
 				if iter_index % 50 == 0:
 				# 	loss_graph.append(c)
@@ -342,7 +367,7 @@ class Restoration:
 					print("pixelwise: %d", c_a)
 					loss_a.append(c_a)
 					print("gradients: %d", c_b)
-					loss_b.append(c_b)
+					loss_b.append(self.alpha*c_b)
 					print(ggg)
 
 				# 	p = sess.run(self.out, feed_dict=fd)
@@ -371,17 +396,22 @@ class Restoration:
 
 			print("### finished training ###")
 
-			np.save("loss_a.npy", np.array(loss_a))
-			np.save("loss_b.npy", np.array(loss_b))
+			#np.save("loss_a.npy", np.array(loss_a))
+			#np.save("loss_b.npy", np.array(loss_b))
 
 			save_path = saver.save(sess, self.model_location)
 			print("Model saved in file: %s" % save_path)
 
 			print("### finished saving the net ###")
-			# tt = np.arange(len(loss_graph))
-			# plt.scatter(tt, loss_graph)
+			tt = 50*np.arange(len(loss_a))
+			plt.plot(tt, np.log(loss_a), label="Pixelwise loss")
+			plt.plot(tt, np.log(loss_b), label="Layer effect on output loss")
+			plt.legend()
+			plt.xlabel("# iteration")
+			plt.ylabel("loss (log scale)")
+			plt.title("Loss as a function of iteration")
 			# #plt.savefig("loss_" + self.model_location + ".jpg")
-			# plt.show()
+			plt.show()
 
 			# plt.plot(np.arange(0,self.num_epochs,
 			# 				   self.num_epochs/len(loss_graph)), loss_graph)

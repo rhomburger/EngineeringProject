@@ -1,3 +1,5 @@
+# import matplotlib
+# matplotlib.use('GTK')
 import Restoration as r
 import utils as u
 import numpy as np
@@ -33,8 +35,8 @@ import scipy.misc
 #     im_path="/cs/labs/raananf/rhomburger/code/Restoration",
 #     model_path ="/cs/labs/raananf/rhomburger/code/Restoration"
 #                 "/model_layers_check"
-#                 "/model_new_net_cost" ,
-#     num_epochs=200,
+#                 "/model_300_iters" ,
+#     num_epochs=301,
 #     batch_size=10, reg_factor=500000)
 #
 # res.train_net()
@@ -48,6 +50,8 @@ import scipy.misc
 #n5 - darker
 #n6 light darker
 
+# model_new_net_cost - trained over 200 iterations
+# model_chck_graph - trained over 1000 iterations
 
 # #
 # #
@@ -56,12 +60,14 @@ VGG_MEAN = [103.939, 116.779, 123.68]
 res = r.Restoration(
     im_path="/cs/labs/raananf/rhomburger/code/Restoration",
     model_path ="/cs/labs/raananf/rhomburger/code/Restoration/model_layers_check"
-                "/model_new_net_cost" ,
+                "/model_300_iters" ,
     num_epochs=1,
     batch_size=10)
 
 
 x = np.load("tnx0.npy") #should be tx2
+#x[0][0] *= 1.1
+#x[0][4] = np.max(x[0][4])*np.ones(x[0][4].shape)
 
 original_im_bgr = np.load("tny0.npy")[0,:,:,:]
 original_im_rgb = np.zeros(original_im_bgr.shape)
@@ -83,7 +89,19 @@ im_restored_rgb = np.zeros(im_restored_bgr.shape)
 im_restored_rgb[:,:,0] = im_restored_bgr[:,:,2] + VGG_MEAN[2]
 im_restored_rgb[:,:,1] = im_restored_bgr[:,:,1] + VGG_MEAN[1]
 im_restored_rgb[:,:,2] = im_restored_bgr[:,:,0] + VGG_MEAN[0]
+
 im_restored_rgb = im_restored_rgb/255
+
+# im_restored_rgb = (im_restored_rgb - np.min(im_restored_rgb)) / \
+#                   (np.max(im_restored_rgb) - np.min(im_restored_rgb))
+
+
+
+im_restored_rgb = np.clip(im_restored_rgb, 0, 1)
+
+
+
+
 print(np.max(im_restored_rgb))
 print(np.min(im_restored_rgb))
 print(np.max(im_restored_bgr))
@@ -104,6 +122,7 @@ a.set_title('Original image')
 a=fig.add_subplot(1,2,2)
 plt.imshow(im_restored_rgb)
 a.set_title('Image after net')
+# plt.savefig("checking.jpg")
 plt.show()
 
 

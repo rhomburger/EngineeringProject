@@ -97,6 +97,90 @@ def get_example(path, batch_size):
 #         yield (batch_x, batch_y)
 
 
+def make_features(im_path):
+    im = Image.open(im_path)
+    im = im.resize((224,224), Image.ANTIALIAS)#tr.resize(im, (224, 224))
+    im = np.array(im)
+    im = im.astype(np.float32)
+    #im = im*255.
+
+
+    im_dim = np.zeros(
+        [1, im.shape[0], im.shape[1], im.shape[2]]).astype(np.float32)
+    im_dim[0, :, :, 0] = im[:, :, 2] - VGG_MEAN[0]
+    im_dim[0, :, :, 1] = im[:, :, 1] - VGG_MEAN[1]
+    im_dim[0, :, :, 2] = im[:, :, 0] - VGG_MEAN[2]
+    # im_dim /= 255
+
+    #im_dim = im_dim.astype(np.float32)
+
+
+
+    # im_dim2 = np.zeros(
+    #     [1, im.shape[0], im.shape[1], im.shape[2]]).astype(np.float32)
+    # im_dim2[:, :, :, 0] = im[:, :, 0]
+    # im_dim2[:, :, :, 1] = im[:, :, 1]
+    # im_dim2[:, :, :, 2] = im[:, :, 2]
+
+    #im_dim2 = im_dim.astype(np.float32)
+
+
+    # print(np.min(im))
+    # print(im.dtype)
+    # print(np.min(im_dim))
+    # print(im_dim.dtype)
+    # print(np.min(im_dim2))
+    # print(im_dim2.dtype)
+    # x=1/0
+
+
+    tf.reset_default_graph()
+    with tf.Session() as sess:
+
+        # # Convert RGB to BGR
+        # rgb_scaled = im_tensor
+        # red, green, blue = tf.split(axis=3, num_or_size_splits=3, value=rgb_scaled)
+        # assert red.get_shape().as_list()[1:] == [224, 224, 1]
+        # assert green.get_shape().as_list()[1:] == [224, 224, 1]
+        # assert blue.get_shape().as_list()[1:] == [224, 224, 1]
+        # bgr = tf.concat(axis=3, values=[
+        #     blue - VGG_MEAN[0],
+        #     green - VGG_MEAN[1],
+        #     red - VGG_MEAN[2],
+        # ])
+        # assert bgr.get_shape().as_list()[1:] == [224, 224, 3]
+        im_tensor = tf.stack(im_dim)
+        bgr = im_tensor
+        vgg = vgg19.Vgg19()
+        vgg.build(bgr)
+
+        # convs = [vgg.conv5_4, vgg.conv4_4, vgg.conv3_4, vgg.conv2_2,
+        #                  vgg.conv1_2]
+        convs = [vgg.conv5_1, vgg.conv4_1, vgg.conv3_1, vgg.conv2_1,
+                         vgg.conv1_1]
+        pools = [vgg.pool4, vgg.pool3, vgg.pool2, vgg.pool1]
+
+        features = np.zeros(3, dtype=object)
+
+        #convolution layers
+        features_convs = np.zeros(5, dtype=object)
+        for c in range(5):
+            features_convs[c] = sess.run(convs[c])
+        features[0] = features_convs
+
+        #pooling layers
+        features_dims = np.zeros(4, dtype=object)
+        features_ind = np.zeros(4, dtype=object)
+        for p in range(4):
+            features_dims[p] = [features_convs[p+1].shape[1],
+                                features_convs[p+1].shape[2]]
+            features_ind[p] = sess.run(pools[p][1])
+        features[1] = features_dims
+        features[2] = features_ind
+
+        return features
+
+
 def make_examples(path, num_examples):
     filenames = list_images(path, True)
     for i in range(num_examples):
