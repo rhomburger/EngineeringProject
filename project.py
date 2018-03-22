@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 VGG_MEAN = [103.939, 116.779, 123.68]
 
 #Path of Content image and Style image
-content_image = "ch/cont.jpg"
-style_image = "ch/st.jpg"
+content_image = "ch/bridge.jpg"#"ch/cont.jpg"
+style_image = "ch/scream.jpg"#"ch/st.jpg"#
 
 
 #Get VGG responses for content and style
@@ -17,7 +17,8 @@ content_res = utils.make_features(content_image)
 style_res = utils.make_features(style_image)
 
 #Find similar patches
-syn_img = patches.synthesize(content_res, style_res)
+syn_img = patches.synthesize(content_res, style_res)#patches.synthesize(
+# content_res, style_res)
 
 np.save("syn_img.npy", syn_img)
 

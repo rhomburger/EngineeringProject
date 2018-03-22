@@ -268,6 +268,8 @@ class Restoration:
 			# 	tf.gradients(tf.sqrt(tf.reduce_mean(tf.square(
 			# 	self.out))),self.convs[i])))))
 
+		self.influence = tf.reduce_mean(tf.square(tf.stack(self.gradients)
+								- tf.reduce_mean(tf.stack(self.gradients))))
 
 		return self.out
 
@@ -303,6 +305,7 @@ class Restoration:
 		loss_graph = []
 		loss_a = []
 		loss_b = []
+		loss_ggg = []
 
 		with tf.Session() as sess:
 			print("### started initialize variables ###")
@@ -332,13 +335,7 @@ class Restoration:
 					for i in range(len(x[0])):
 						fd[self.convs[i]] = x[0][i]
 					for i in range(len(x[1])):
-						fd[self.pool_dims[i]] = x[1][i]#[fd[self.convs[
-							# i+1]].shape[1],
-												# fd[self.convs[i + 1]].shape[2]]
-						# print("fd[self.pool_dims[i]]: ", fd[self.pool_dims[i]])
-						#fd[self.pool_ind[i]] = x[2][i]#sess.run(x[2][i])
-						#print("fd[self.pool_ind[i]].shape: ", i, fd[self.pool_ind[
-							# i]].shape)
+						fd[self.pool_dims[i]] = x[1][i]
 					fd[self.label] = y
 
 
@@ -346,21 +343,10 @@ class Restoration:
 										  cost_average_pixels,
 									 cost_similar_filters, self.gradients],
 									feed_dict=fd)
-					# _, c = sess.run([optimizer, cost],
-					# 				feed_dict=fd)
-
-
-					# {self.convs: x[0],
-					#  self.pool_dims: x[1],
-					#  self.pool_ind: x[2],
-					#  self.label: y}
 
 					loss_graph.append(c)
-					#loss_a.append(c_a)
-					#loss_b.append(self.alpha*c_b)
 
 				if iter_index % 50 == 0:
-				# 	loss_graph.append(c)
 					print("Finished iteration " + str(
 						iter_index + 1) + " out of " +
 						  str(self.num_epochs) + " with loss: " + str(c))
@@ -369,6 +355,7 @@ class Restoration:
 					print("gradients: %d", c_b)
 					loss_b.append(self.alpha*c_b)
 					print(ggg)
+					loss_ggg.append(ggg)
 
 				# 	p = sess.run(self.out, feed_dict=fd)
 				# 	im = p[0,:,:,:]
@@ -396,31 +383,24 @@ class Restoration:
 
 			print("### finished training ###")
 
-			#np.save("loss_a.npy", np.array(loss_a))
-			#np.save("loss_b.npy", np.array(loss_b))
 
 			save_path = saver.save(sess, self.model_location)
 			print("Model saved in file: %s" % save_path)
 
-			print("### finished saving the net ###")
-			tt = 50*np.arange(len(loss_a))
-			plt.plot(tt, np.log(loss_a), label="Pixelwise loss")
-			plt.plot(tt, np.log(loss_b), label="Layer effect on output loss")
-			plt.legend()
-			plt.xlabel("# iteration")
-			plt.ylabel("loss (log scale)")
-			plt.title("Loss as a function of iteration")
-			# #plt.savefig("loss_" + self.model_location + ".jpg")
-			plt.show()
-
-			# plt.plot(np.arange(0,self.num_epochs,
-			# 				   self.num_epochs/len(loss_graph)), loss_graph)
-
-
-
-			#plottin error graph
-			# plt.plot(np.arange(0,len(loss_graph)), loss_graph)
+			# print("### finished saving the net ###")
+			# tt = 50*np.arange(len(loss_a))
+			# plt.plot(tt, np.log(loss_a), label="Pixelwise loss")
+			# plt.plot(tt, np.log(loss_b), label="Layer effect on output loss")
+			# plt.legend()
+			# plt.xlabel("# iteration")
+			# plt.ylabel("loss (log scale)")
+			# plt.title("Loss as a function of iteration")
+			# # #plt.savefig("loss_" + self.model_location + ".jpg")
 			# plt.show()
+			np.save("stats/loss_a.npy", loss_a)
+			np.save("stats/loss_b.npy", loss_b)
+			np.save("stats/loss_ggg.npy", loss_ggg)
+
 
 
 
@@ -439,14 +419,9 @@ class Restoration:
 
 			fd = {}
 			for i in range(len(features[0])):
-				fd[self.convs[i]] = features[0][i]  # sess.run(x[0][i])
-			# print("fd[self.convs[i]]: ", i, fd[self.convs[i]].shape)
+				fd[self.convs[i]] = features[0][i]
 			for i in range(len(features[1])):
-				fd[self.pool_dims[i]] = features[1][i]  # [fd[self.convs[
-				# i+1]].shape[1],
-				# fd[self.convs[i + 1]].shape[2]]
-				# print("fd[self.pool_dims[i]]: ", fd[self.pool_dims[i]])
-				#fd[self.pool_ind[i]] = features[2][i]  # sess.run(x[2][i])
+				fd[self.pool_dims[i]] = features[1][i]
 
 
 			blue, green, red = tf.split(axis=3, num_or_size_splits=3,
@@ -458,8 +433,10 @@ class Restoration:
 
 			])
 
-			#prediction = sess.run(rgb, feed_dict=fd)
-			prediction = sess.run(self.out, feed_dict=fd)
+			prediction, error = sess.run([self.out, self.gradients],
+									   feed_dict=fd)
+			print("error")
+			print(error)
 
 		return prediction
 
