@@ -75,6 +75,10 @@ def synthesize(content, style):
         print("layer" + str(layer))
         t = time.time()
         syn_img[0][layer] = np.zeros(content[0][layer].shape)
+
+        # if layer >=3 :
+        #     continue
+
         layer_weights = np.array([weights]*syn_img[0][layer].shape[3]).T.\
                     reshape([PATCH_SIZE, PATCH_SIZE, syn_img[0][layer].shape[3]])
         print(time.time() - t)

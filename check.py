@@ -9,6 +9,7 @@ import scipy.misc
 
 
 
+
 # for i in range(10):
 #     name = "x" + str(i) + ".npy"
 #     ar = np.load(name)
@@ -31,16 +32,15 @@ import scipy.misc
 #
 #for training
 
-# res = r.Restoration(
-#     im_path="/cs/labs/raananf/rhomburger/code/Restoration",
-#     model_path ="/cs/labs/raananf/rhomburger/code/Restoration"
-#                 "/model_layers_check"
-#                 "/model_300_iters" ,
-#     num_epochs=301,
-#     batch_size=10, reg_factor=500000)
-#
-# res.train_net()
-# exit()
+res = r.Restoration(
+    im_path="/cs/labs/raananf/rhomburger/code/Restoration",
+    model_path ="/cs/labs/raananf/rhomburger/code/Restoration"
+                "/model_net_fix/model_1",
+    num_epochs=1000,
+    batch_size=10, reg_factor=100000)
+
+res.train_net()
+exit()
 # #
 
 
@@ -65,11 +65,11 @@ res = r.Restoration(
     batch_size=10)
 
 
-x = np.load("tnx0.npy") #should be tx2
+x = np.load("test_x4.npy") #should be tx2   tnx0.npy
 #x[0][0] *= 1.1
 #x[0][4] = np.max(x[0][4])*np.ones(x[0][4].shape)
 
-original_im_bgr = np.load("tny0.npy")[0,:,:,:]
+original_im_bgr = np.load("test_y4.npy")[0,:,:,:]
 original_im_rgb = np.zeros(original_im_bgr.shape)
 original_im_rgb[:,:,0] = original_im_bgr[:,:,2] + VGG_MEAN[2]
 original_im_rgb[:,:,1] = original_im_bgr[:,:,1] + VGG_MEAN[1]

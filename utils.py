@@ -55,8 +55,8 @@ def get_example(path, batch_size):
     i=0
     while True:
 
-        x = np.load("nx" + str(i) + ".npy")
-        y = np.load("ny" + str(i) + ".npy").astype(np.float32)
+        x = np.load("test_x" + str(i) + ".npy")
+        y = np.load("test_y" + str(i) + ".npy").astype(np.float32)
 
         i=((i+1) % batch_size)
 
@@ -99,40 +99,15 @@ def get_example(path, batch_size):
 
 def make_features(im_path):
     im = Image.open(im_path)
-    im = im.resize((224,224), Image.ANTIALIAS)#tr.resize(im, (224, 224))
+    #im = im.resize((224,224), Image.ANTIALIAS)#tr.resize(im, (224, 224))
     im = np.array(im)
     im = im.astype(np.float32)
-    #im = im*255.
-
 
     im_dim = np.zeros(
         [1, im.shape[0], im.shape[1], im.shape[2]]).astype(np.float32)
     im_dim[0, :, :, 0] = im[:, :, 2] - VGG_MEAN[0]
     im_dim[0, :, :, 1] = im[:, :, 1] - VGG_MEAN[1]
     im_dim[0, :, :, 2] = im[:, :, 0] - VGG_MEAN[2]
-    # im_dim /= 255
-
-    #im_dim = im_dim.astype(np.float32)
-
-
-
-    # im_dim2 = np.zeros(
-    #     [1, im.shape[0], im.shape[1], im.shape[2]]).astype(np.float32)
-    # im_dim2[:, :, :, 0] = im[:, :, 0]
-    # im_dim2[:, :, :, 1] = im[:, :, 1]
-    # im_dim2[:, :, :, 2] = im[:, :, 2]
-
-    #im_dim2 = im_dim.astype(np.float32)
-
-
-    # print(np.min(im))
-    # print(im.dtype)
-    # print(np.min(im_dim))
-    # print(im_dim.dtype)
-    # print(np.min(im_dim2))
-    # print(im_dim2.dtype)
-    # x=1/0
-
 
     tf.reset_default_graph()
     with tf.Session() as sess:
@@ -188,7 +163,7 @@ def make_examples(path, num_examples):
         im = Image.open(file)#imread(file)
         # im = im.astype(np.float32)
         # im = im/255
-        im = im.resize((224,224), Image.ANTIALIAS)#tr.resize(im, (224, 224))
+        #im = im.resize((224,224), Image.ANTIALIAS)#tr.resize(im, (224, 224))
         im = np.array(im)
         print(np.max(im))
         print(np.min(im))
@@ -202,7 +177,7 @@ def make_examples(path, num_examples):
         im_dim[0, :, :, 0] = im[:, :, 2] - VGG_MEAN[0]
         im_dim[0, :, :, 1] = im[:, :, 1] - VGG_MEAN[1]
         im_dim[0, :, :, 2] = im[:, :, 0] - VGG_MEAN[2]
-        im_dim /= 255
+        #im_dim /= 255
 
         #im_dim = im_dim.astype(np.float32)
 
@@ -274,8 +249,8 @@ def make_examples(path, num_examples):
 
             y = im_dim#sess.run(bgr)
 
-            x_name = "norm_x" + str(i)
-            y_name = "norm_y" + str(i)
+            x_name = "test_x" + str(i)
+            y_name = "test_y" + str(i)
             np.save(x_name, x)
             np.save(y_name, y)
 

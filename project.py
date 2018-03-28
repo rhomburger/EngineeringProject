@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 VGG_MEAN = [103.939, 116.779, 123.68]
 
 #Path of Content image and Style image
-content_image = "ch/bridge.jpg"#"ch/cont.jpg"
+content_image = "ch/cont.jpg"#"ch/bridge.jpg"#
 style_image = "ch/scream.jpg"#"ch/st.jpg"#
 
 
