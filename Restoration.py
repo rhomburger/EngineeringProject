@@ -140,21 +140,30 @@ class Restoration:
 		# after unpooling
 
 		N = updates_shape[1]
-		print(type(N))
+		M = updates_shape[2]
 		#axis_2 = np.array([2*np.arange(N)]*N)
 		slice = tf.transpose(tf.stack([tf.zeros([N], dtype=tf.int32), tf.zeros(
 			[N], dtype=tf.int32), 2*tf.range(0,N,1)]))
 
-		axis_2 = tf.reshape(tf.tile(slice,[N,1]),[N,N,3])
+		axis_2 = tf.reshape(tf.tile(slice, [M, 1]), [N, M, 3])
+		# axis_2 = tf.reshape(tf.tile(slice,[N,1]),[N,N,3])
 		#change to 3d!!
 
-		putin = tf.transpose(2*tf.multiply(tf.ones([N,N], dtype=tf.int32),
-												   tf.range(0,N,1)))
-		zeros_tensor = tf.zeros([N,N], dtype=tf.int32)
+		putin = tf.transpose(2*tf.multiply(tf.ones([N,M], dtype=tf.int32),
+												   tf.range(0,M,1)))
+		zeros_tensor = tf.zeros([N,M], dtype=tf.int32)
 		axis_1 = tf.stack([zeros_tensor, putin, zeros_tensor], 2)
 
 
 		indices = tf.expand_dims(tf.add(axis_1,axis_2),0)
+
+		# indices is a tensor with the indexes to put the content of updates
+		#  in the scatter tensor
+
+		# updates is a tensor with data that we wish to make its dim higher
+
+		# shape is the new shape of the scatter tensor
+
 
 		scatter = tf.scatter_nd(indices, updates, shape)
 		return scatter
@@ -305,7 +314,7 @@ class Restoration:
 		loss_graph = []
 		loss_a = []
 		loss_b = []
-		loss_ggg = []
+		loss_g = []
 
 		with tf.Session() as sess:
 			print("### started initialize variables ###")
@@ -339,23 +348,25 @@ class Restoration:
 					fd[self.label] = y
 
 
-					_, c, c_a, c_b, ggg = sess.run([optimizer, cost,
+					_, c, c_a, c_b, c_g = sess.run([optimizer, cost,
 										  cost_average_pixels,
 									 cost_similar_filters, self.gradients],
 									feed_dict=fd)
 
 					loss_graph.append(c)
+					loss_a.append(c_a)
+					loss_b.append(c_b)
+					loss_g.append(c_g)
 
 				if iter_index % 50 == 0:
 					print("Finished iteration " + str(
 						iter_index + 1) + " out of " +
 						  str(self.num_epochs) + " with loss: " + str(c))
 					print("pixelwise: %d", c_a)
-					loss_a.append(c_a)
 					print("gradients: %d", c_b)
-					loss_b.append(self.alpha*c_b)
-					print(ggg)
-					loss_ggg.append(ggg)
+
+
+
 
 				# 	p = sess.run(self.out, feed_dict=fd)
 				# 	im = p[0,:,:,:]
@@ -397,9 +408,10 @@ class Restoration:
 			# plt.title("Loss as a function of iteration")
 			# # #plt.savefig("loss_" + self.model_location + ".jpg")
 			# plt.show()
+			np.save("stats/loss_total.npy", loss_graph)
 			np.save("stats/loss_a.npy", loss_a)
 			np.save("stats/loss_b.npy", loss_b)
-			np.save("stats/loss_ggg.npy", loss_ggg)
+			np.save("stats/loss_g.npy", loss_g)
 
 
 
