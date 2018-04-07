@@ -141,7 +141,6 @@ class Restoration:
 
 		N = updates_shape[1]
 		M = updates_shape[2]
-		#axis_2 = np.array([2*np.arange(N)]*N)
 		slice = tf.transpose(tf.stack([tf.zeros([N], dtype=tf.int32), tf.zeros(
 			[N], dtype=tf.int32), 2*tf.range(0,N,1)]))
 
@@ -168,11 +167,35 @@ class Restoration:
 		scatter = tf.scatter_nd(indices, updates, shape)
 		return scatter
 
+	def unpooling_zero_neighbours2(self, updates, dim):
+		updates_shape = tf.shape(updates)
+		shape = tf.stack([1, dim[0], dim[1], updates_shape[3]])
+		N = updates_shape[1]
+		M = updates_shape[2]
+
+		axis1 = tf.tile(2*tf.range(N), [M])
+		axis1 = tf.reshape(axis1, [M,N])
+		axis1 = tf.transpose(axis1)
+		axis1 = tf.reshape(axis1, [N*M])
+
+		axis2 = tf.tile(2*tf.range(M),[N])
+
+		indices = tf.concat([[tf.zeros([M*N], dtype=tf.int32)], [axis1], \
+															 [axis2]], axis=0)
+		indices = tf.transpose(indices)
+		indices = tf.reshape(indices, [N, M,3])
+		indices = tf.expand_dims(indices,0)
+
+		#indices = tf.expand_dims(tf.add(axis1, axis2), 0)
+		scatter = tf.scatter_nd(indices, updates, shape)
+		return scatter
+
+
 	def unpooling(self, inp, stam=-1):
 		dims = tf.placeholder("int32", shape=[2])
 		self.pool_dims.append(dims)
 		#p = tf.image.resize_nearest_neighbor(inp, size=dims)
-		p = self.unpooling_zero_neighbours(inp, dims)
+		p = self.unpooling_zero_neighbours2(inp, dims)
 		return p
 
 
