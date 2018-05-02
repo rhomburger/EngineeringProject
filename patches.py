@@ -13,17 +13,33 @@ PATCH_SHIFT = PATCH_SIZE-1#2
 def scan_for_patch(content_patch, style_l):
     min_i=0
     min_j=0
-    min_patch = np.sum(np.square(content_patch - style_l[0, min_i:
-                        min_i+PATCH_SIZE, min_j: min_j+PATCH_SIZE,:]))
+    # min_patch = np.sum(np.square(content_patch - style_l[0, min_i:
+    #                     min_i+PATCH_SIZE, min_j: min_j+PATCH_SIZE,:]))
+    min_patch = np.sum(content_patch*style_l[0,
+                                                          0:PATCH_SIZE,
+                                                          0:PATCH_SIZE,
+                                                     :]) / (
+                np.linalg.norm(content_patch)*np.linalg.norm(style_l[0,
+                                                          0:PATCH_SIZE,
+                                                          0:PATCH_SIZE,
+                                                     :]))
 
     #TODO limits in both fors: deal with case that the style shape is odd (
     #TODO in that case we dont need to substract PATCH_SIZE
     for i in range(0, style_l.shape[1]-PATCH_SIZE, PATCH_SHIFT):
         for j in range(0, style_l.shape[2]-PATCH_SIZE, PATCH_SHIFT):
-            patch_cost = np.sum(np.square(content_patch - style_l[0,
+            # patch_cost = np.sum(np.square(content_patch - style_l[0,
+            #                                               i:i+PATCH_SIZE,
+            #                                               j:j+PATCH_SIZE,:]))
+            patch_cost = np.sum(content_patch*style_l[0,
                                                           i:i+PATCH_SIZE,
-                                                          j:j+PATCH_SIZE,:]))
-            if patch_cost < min_patch:
+                                                          j:j+PATCH_SIZE,
+                                                     :]) / (
+                np.linalg.norm(content_patch)*np.linalg.norm(style_l[0,
+                                                          i:i+PATCH_SIZE,
+                                                          j:j+PATCH_SIZE,
+                                                     :]))
+            if patch_cost > min_patch:
                 min_patch = patch_cost
                 min_i = i
                 min_j = j
@@ -75,9 +91,6 @@ def synthesize(content, style):
         print("layer" + str(layer))
         t = time.time()
         syn_img[0][layer] = np.zeros(content[0][layer].shape)
-
-        # if layer >=3 :
-        #     continue
 
         layer_weights = np.array([weights]*syn_img[0][layer].shape[3]).T.\
                     reshape([PATCH_SIZE, PATCH_SIZE, syn_img[0][layer].shape[3]])
